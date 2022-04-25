@@ -1,15 +1,9 @@
 import React from "react";
-import {
-  BrowserRouter as Router,
-  Switch,
-  Route,
-  Link
-} from "react-router-dom";
+import {BrowserRouter as Router, Route, Switch} from "react-router-dom";
 import CovidData from "./covid-data";
-import Login from "./login";
-import {AuthProvider, useAuth} from "./auth";
+import {useAuth} from "./auth";
 import PrivateRoute from "./PrivateRoute";
-import AuthPage from "./auth/components/AuthPage";
+import Login from "./auth/components/Login";
 
 export default function App() {
     const { state: authState } = useAuth();
@@ -23,7 +17,7 @@ export default function App() {
                   user={authState.user}
                   component={(props) => <CovidData {...props} />}
               />
-              <Route path="/auth" component={(props) => <AuthPage {...props} />} />
+              <Route path="/auth" component={(props) => <Login {...props} />} />
           </Switch>
         </div>
       </Router>

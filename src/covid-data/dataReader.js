@@ -1,17 +1,21 @@
 import Papa from 'papaparse';
 
-async function fetchCsv() {
-    const response = await fetch('covidData.csv');
+async function fetchCsv(fileName) {
+    const response = await fetch(fileName);
     const reader = response.body.getReader();
     const result = await reader.read();
     const decoder = new TextDecoder('utf-8');
     return decoder.decode(result.value);
 }
 
-async function GetData() {
-    return Papa.parse(await fetchCsv());
+async function GetData(fileName) {
+    return Papa.parse(await fetchCsv(fileName));
 }
 
 export function dataReader(){
-    return GetData();
+    return GetData("covidData.csv");
+}
+
+export function countryDataReader() {
+    return GetData("country.csv");
 }

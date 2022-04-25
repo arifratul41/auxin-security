@@ -1,8 +1,11 @@
-import {Card, Chip, FormControl, InputLabel, MenuItem, Select} from "@mui/material";
+import {Button, Chip, FormControl, InputLabel, MenuItem, Select} from "@mui/material";
 import {Bar} from 'react-chartjs-2';
 import {useEffect, useState} from "react";
 import {BarElement, CategoryScale, Chart as ChartJS, Legend, LinearScale, Title, Tooltip,} from 'chart.js';
-import {dataReader} from "./dataReader";
+import {countryDataReader, dataReader} from "./dataReader";
+import {logout, useAuth} from "../auth";
+import {useHistory} from "react-router";
+
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -23,38 +26,44 @@ export const options = {
     },
 };
 
-function getCountryList(covidData){
-    if(!covidData) return [];
-    const countries = covidData?.data?.filter((datum) => !datum[0].startsWith("OWID") && !datum[0].startsWith("iso"))
-                                    .map((datum) => {
-                                        return {
-                                            value: datum[0],
-                                            label: datum[1]
-                                        }
-                                    });
-    return [...new Set(countries?.map(JSON.stringify))]?.map(JSON.parse);
-}
 
-export default  function CovidData({}) {
+export default  function CovidData() {
     const [country, setCountry] = useState('');
     const [dataIndex, setDataIndex] = useState(3);
     const [dataLabel, setDataLabel] = useState("Infection Count");
     const [barColor, setBarColor] = useState("rgba(255, 99, 132, 0.5)")
     const [covidData, setCovidData] = useState([]);
     const [duration, setDuration] = useState('');
+    const [countryList, setCountryList] = useState([]);
+    const { dispatch } = useAuth();
+    const history = useHistory();
 
     useEffect(() => {
         dataReader().then((response) => setCovidData(response));
+        countryDataReader().then((response) => setCountryList(response));
     },[])
+
+    const countryDataList = countryList? countryList?.data?.filter((datum) => !(datum[0].startsWith("iso") || datum[0].startsWith("OWID")))
+        .map((datum) => {
+            return {
+                value: datum[0],
+                label: datum[1]
+            }
+        }): [];
     const countryData = covidData?.data?.filter((datum)=> datum[0]===country)
-    const label = duration ? countryData?.map((datum) => datum[2]).slice(0, parseInt(duration)) 
+    const label = duration ? countryData?.map((datum) => datum[2]).slice(countryData.length - duration, countryData.length)
                         : countryData?.map((datum) => datum[2]);
+
+    const onLogout = () => {
+        logout(dispatch, () => {
+            history.push(`/auth`);
+        });
+    };
 
     const getViewedData = () => {
         const data =  countryData?.map((datum) => datum[dataIndex]);
         if(!duration) return data;
-        console.log(data.slice(0, parseInt(duration)))
-        return data.slice(0, parseInt(duration))
+        return data.slice(countryData.length - duration, countryData.length)
     }
 
     const barChartData = {
@@ -72,20 +81,23 @@ export default  function CovidData({}) {
     };
     return (
         <div>
-            <Card className={`mx-auto w-2/3 mt-16 `}>
+            <div className={`mx-auto w-2/3 mt-16 `}>
+                <div className={`flex flex-row justify-end  text-xl`}>
+                    <Button onClick={onLogout}>Log Out</Button>
+                </div>
                 <div className={`flex flex-row justify-end gap-2`}>
                     <div className={`mt-2.5`}>
-                        <Chip onClick={(e) => {
+                        <Chip onClick={(_) => {
                             setDataIndex(3);
                             setDataLabel("Infection Count");
                             setBarColor("rgba(255, 99, 132, 0.5)")
                         }} label="Infection" clickable={true} variant={"outlined"} />
                     </div>
                     <div className={`mt-2.5`}>
-                        <Chip onClick={(e) => {
+                        <Chip onClick={(_) => {
                             setDataIndex(4);
                             setDataLabel("Death Count");
-                            setBarColor("rgba(0, 0, 0, 0.4)")
+                            setBarColor("rgba(0, 0, 0, 0.6)")
                         }} label="Death" clickable={true} variant={"outlined"}/>
                     </div>
                     <div>
@@ -93,14 +105,14 @@ export default  function CovidData({}) {
                             <InputLabel id="demo-simple-select-disabled-label">Country</InputLabel>
                             <Select
                                 value={country}
-                                label="Age"
+                                label="Country"
                                 onChange={handleChange}
                             >
-                                {getCountryList(covidData)?.map((datum) => {
+                                {countryDataList && countryDataList.map((datum) => {
                                     return (
-                                        <MenuItem value={datum.value}>{datum.label}</MenuItem>
+                                        <MenuItem key={datum.value} value={datum.value}>{datum.label}</MenuItem>
                                     )
-                                })} 
+                                })}
                             </Select>
                         </FormControl>
                     </div>
@@ -114,21 +126,21 @@ export default  function CovidData({}) {
                                     setDuration(event.target.value);
                                 }}
                             >
-                                
+
                                 <MenuItem value={""}>Over All</MenuItem>
                                 <MenuItem value={"7"}>Last One Week</MenuItem>
                                 <MenuItem value={"30"}>Last One Month</MenuItem>
-                                    
-                                
+
+
                             </Select>
                         </FormControl>
                     </div>
 
                 </div>
-            </Card>
-            <Card className={`w-2/3 mx-auto mt-5`}>
-            <Bar options={options} data={barChartData}/>
-            </Card>
+            </div>
+            <div className={`w-2/3 mx-auto mt-5 `}>
+            <Bar options={options} data={barChartData} type={"bar"}/>
+            </div>
         </div>
     )
 }
