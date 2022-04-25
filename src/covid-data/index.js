@@ -18,94 +18,110 @@ export const options = {
             position: 'top',
         },
         title: {
-            display: true,
-            text: 'Chart.js Bar Chart',
+            display: false
         },
     },
 };
-const labels = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'January', 'February', 'March', 'April', 'May', 'June', 'July','January', 'February', 'March', 'April', 'May', 'June', 'July'];
 
-export const data = {
-    labels,
-    datasets: [
-        {
-            label: 'Dataset 1',
-            data: labels.map((datum, index) => index*2),
-            backgroundColor: 'rgba(255, 99, 132, 0.5)',
-        }
-    ],
-};
-function handleClick() {
-
+function getCountryList(covidData){
+    if(!covidData) return [];
+    const countries = covidData?.data?.filter((datum) => !datum[0].startsWith("OWID") && !datum[0].startsWith("iso"))
+                                    .map((datum) => {
+                                        return {
+                                            value: datum[0],
+                                            label: datum[1]
+                                        }
+                                    });
+    return [...new Set(countries?.map(JSON.stringify))]?.map(JSON.parse);
 }
 
 export default  function CovidData({}) {
-    const [age, setAge] = useState('10');
-    const [sex, setSex] = useState('');
-    // const [barChartData, setBarChartData] = useState({})
+    const [country, setCountry] = useState('');
+    const [dataIndex, setDataIndex] = useState(3);
+    const [dataLabel, setDataLabel] = useState("Infection Count");
+    const [barColor, setBarColor] = useState("rgba(255, 99, 132, 0.5)")
     const [covidData, setCovidData] = useState([]);
+    const [duration, setDuration] = useState('');
 
     useEffect(() => {
         dataReader().then((response) => setCovidData(response));
     },[])
-    const countryData = covidData?.data?.filter((datum)=> datum[0]==='AFG')
-    const label = countryData?.map((datum) => datum[2]);
-    const infectionCount = countryData?.map((datum) => datum[3]);
-    const deathCount = countryData?.map((datum) => datum[4]);
+    const countryData = covidData?.data?.filter((datum)=> datum[0]===country)
+    const label = duration ? countryData?.map((datum) => datum[2]).slice(0, parseInt(duration)) 
+                        : countryData?.map((datum) => datum[2]);
+
+    const getViewedData = () => {
+        const data =  countryData?.map((datum) => datum[dataIndex]);
+        if(!duration) return data;
+        console.log(data.slice(0, parseInt(duration)))
+        return data.slice(0, parseInt(duration))
+    }
 
     const barChartData = {
         labels: label,
         datasets: [
             {
-                label: 'Infection Count',
-                data: infectionCount,
-                backgroundColor: 'rgba(255, 99, 132, 0.5)',
+                label: dataLabel,
+                data: getViewedData(),
+                backgroundColor: barColor,
             }
         ],
     }
-
-    console.log(barChartData)
-
     const handleChange = (event) => {
-        setAge(String(event.target.value));
+        setCountry(String(event.target.value));
     };
     return (
         <div>
             <Card className={`mx-auto w-2/3 mt-16 `}>
-                <div className={`flex flex-row justify-end`}>
+                <div className={`flex flex-row justify-end gap-2`}>
                     <div className={`mt-2.5`}>
-                        <Chip label="Chip Filled" />
+                        <Chip onClick={(e) => {
+                            setDataIndex(3);
+                            setDataLabel("Infection Count");
+                            setBarColor("rgba(255, 99, 132, 0.5)")
+                        }} label="Infection" clickable={true} variant={"outlined"} />
+                    </div>
+                    <div className={`mt-2.5`}>
+                        <Chip onClick={(e) => {
+                            setDataIndex(4);
+                            setDataLabel("Death Count");
+                            setBarColor("rgba(0, 0, 0, 0.4)")
+                        }} label="Death" clickable={true} variant={"outlined"}/>
                     </div>
                     <div>
                         <FormControl sx={{ m: 1, minWidth: 120 }}>
-                            <InputLabel id="demo-simple-select-disabled-label">Age</InputLabel>
+                            <InputLabel id="demo-simple-select-disabled-label">Country</InputLabel>
                             <Select
-                                labelId="demo-simple-select-disabled-label"
-                                id="demo-simple-select-disabled"
-                                value={age}
+                                value={country}
                                 label="Age"
                                 onChange={handleChange}
                             >
-                                <MenuItem value={10}>Ten</MenuItem>
-                                <MenuItem value={20}>Twenty</MenuItem>
-                                <MenuItem value={30}>Thirty</MenuItem>
+                                {getCountryList(covidData)?.map((datum) => {
+                                    return (
+                                        <MenuItem value={datum.value}>{datum.label}</MenuItem>
+                                    )
+                                })} 
                             </Select>
                         </FormControl>
+                    </div>
+                    <div>
                         <FormControl sx={{ m: 1, minWidth: 120 }}>
-                            <InputLabel >Sex</InputLabel>
+                            <InputLabel>Duration</InputLabel>
                             <Select
-                                labelId="demo-simple-select-disabled-label"
-                                id="demo-simple-select-disabled"
-                                value={sex}
-                                label="Sex"
-                                onChange={handleChange}
+                                value={duration}
+                                label="Duration"
+                                onChange={(event) => {
+                                    setDuration(event.target.value);
+                                }}
                             >
-                                <MenuItem value={10}>Ten</MenuItem>
-                                <MenuItem value={20}>Twenty</MenuItem>
-                                <MenuItem value={30}>Thirty</MenuItem>
+                                
+                                <MenuItem value={""}>Over All</MenuItem>
+                                <MenuItem value={"7"}>Last One Week</MenuItem>
+                                <MenuItem value={"30"}>Last One Month</MenuItem>
+                                    
+                                
                             </Select>
                         </FormControl>
-
                     </div>
 
                 </div>
